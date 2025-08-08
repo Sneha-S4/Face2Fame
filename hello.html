@@ -51,127 +51,193 @@
     </style>
 </head>
 <body>
-    <h1>HELLO WORLD</h1>
-    <img src="angry-removebg-preview.png" alt="angry" style="max-width:120px;">
-    <h4>I GOT YOU! YOU STUPID MONKEY FACE</h4>
-    <div id="status">Preparing camera...</div>
-    <div id="videoWrap">
-        <video id="video" autoplay playsinline></video>
-    </div>
-    <div id="previewWrap">
-        <img id="capturedImg" alt="Captured preview will appear here">
-    </div>
-    <div id="controls">
-        <button id="captureBtn">Capture Now</button>
-        <button id="autoCaptureToggle">Auto Capture: ON</button>
-        <button id="downloadBtn">Download Photo</button>
-    </div>
-    <script async src="https://docs.opencv.org/4.x/opencv.js" onload="onOpenCvLoaded();"></script>
-    <script>
-        const video = document.getElementById('video');
-        const capturedImg = document.getElementById('capturedImg');
-        const status = document.getElementById('status');
-        const captureBtn = document.getElementById('captureBtn');
-        const autoToggle = document.getElementById('autoCaptureToggle');
-        const downloadBtn = document.getElementById('downloadBtn');
-        let stream = null;
-        let autoCapture = true;
-        let openCvReady = false;
-        function setStatus(t) {
-            status.textContent = t;
-        }
-        async function startCamera() {
-            try {
-                stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 }, audio: false });
-                video.srcObject = stream;
-                await video.play();
-                setStatus('Camera is live. Waiting for OpenCV...');
-            } catch (err) {
-                console.error('Camera start failed:', err);
-                setStatus('Cannot access camera. Make sure you allowed permissions and are using HTTPS / localhost.');
-            }
-        }
-        function onOpenCvLoaded() {
-            if (typeof cv === 'undefined') {
-                setStatus('Failed to load OpenCV.js');
-                return;
-            }
-            cv['onRuntimeInitialized'] = () => {
-                openCvReady = true;
-                setStatus('OpenCV ready. You can capture a photo.');
-                if (autoCapture) {
-                    setTimeout(() => {
-                        captureFrame();
-                    }, 700);
-                }
-            };
-        }
-        function captureFrame() {
-            if (!stream) {
-                setStatus('Camera not started yet.');
-                return;
-            }
-            const tmpCanvas = document.createElement('canvas');
-            tmpCanvas.width = video.videoWidth;
-            tmpCanvas.height = video.videoHeight;
-            const ctx = tmpCanvas.getContext('2d');
-            ctx.drawImage(video, 0, 0, tmpCanvas.width, tmpCanvas.height);
-            capturedImg.src = tmpCanvas.toDataURL('image/png');
-            if (openCvReady) {
-                try {
-                    let src = cv.imread(tmpCanvas);
-                    let dst = new cv.Mat();
-                    cv.cvtColor(src, src, cv.COLOR_RGBA2GRAY);
-                    let ksize = new cv.Size(7, 7);
-                    cv.GaussianBlur(src, dst, ksize, 0, 0, cv.BORDER_DEFAULT);
-                    src.delete();
-                    dst.delete();
-                    setStatus('Processed and preview shown. You are famous now.');
-                } catch (err) {
-                    console.error('OpenCV processing error:', err);
-                    setStatus('Processed failed: ' + err);
-                }
-            } else {
-                setStatus('OpenCV not ready yet. Showing unprocessed capture.');
-            }
-        }
-        downloadBtn.addEventListener('click', () => {
-            const link = document.createElement('a');
-            link.href = capturedImg.src;
-            const name = (localStorage.getItem('newUser') || 'user') + '_photo.png';
-            link.download = name;
-            link.click();
-        });
-        captureBtn.addEventListener('click', () => {
+  <h1>HELLO WORLD</h1>
+  <!-- optional angry image and text you had -->
+  <img src="angry-removebg-preview.png" alt="angry" style="max-width:120px;">
+  <h4>I GOT YOU! YOU STUPID MONKEY FACE</h4>
+
+  <div id="status">Preparing camera...</div>
+
+  <div id="videoWrap">
+    <!-- live webcam -->
+    <video id="video" autoplay playsinline></video>
+    <!-- canvas for OpenCV processed output -->
+    <!-- <canvas id="canvasOutput"></canvas> -->
+  </div>
+
+  <div id="previewWrap">
+    <!-- captured image preview -->
+    <img id="capturedImg" alt="Captured preview will appear here">
+  </div>
+
+  <div id="controls">
+    <button id="captureBtn">Capture Now</button>
+    <button id="autoCaptureToggle">Auto Capture: ON</button>
+    <button id="downloadBtn">Download Photo</button>
+  </div>
+
+  <!-- OpenCV.js (WASM build) -->
+  <script async src="https://docs.opencv.org/4.x/opencv.js" onload="onOpenCvLoaded();" ></script>
+
+  <script>
+    // Basic flow:
+    // 1. Start camera
+    // 2. Show video
+    // 3. When OpenCV ready and either auto-capture is true or user clicks capture:
+    //    - draw frame to canvas
+    //    - run simple OpenCV processing (grayscale + blur)
+    //    - show processed preview in <img>
+    //    - allow download
+
+    const video = document.getElementById('video');
+    //const canvasOutput = document.getElementById('canvasOutput');
+    const capturedImg = document.getElementById('capturedImg');
+    const status = document.getElementById('status');
+    const captureBtn = document.getElementById('captureBtn');
+    const autoToggle = document.getElementById('autoCaptureToggle');
+    const downloadBtn = document.getElementById('downloadBtn');
+
+    let stream = null;
+    let autoCapture = true;
+    let openCvReady = false;
+
+    // helper to set status text
+    function setStatus(t) {
+      status.textContent = t;
+    }
+
+    // Start camera
+    async function startCamera() {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 }, audio: false });
+        video.srcObject = stream;
+        await video.play();
+        setStatus('Camera is live. Waiting for OpenCV...');
+        // resize canvas to video size
+        //canvasOutput.width = video.videoWidth || 640;
+        //canvasOutput.height = video.videoHeight || 480;
+      } catch (err) {
+        console.error('Camera start failed:', err);
+        setStatus('Cannot access camera. Make sure you allowed permissions and are using HTTPS / localhost.');
+      }
+    }
+
+    // Called when OpenCV script finishes loading
+    function onOpenCvLoaded() {
+      // Wait for the wasm runtime to be ready
+      if (typeof cv === 'undefined') {
+        setStatus('Failed to load OpenCV.js');
+        return;
+      }
+      cv['onRuntimeInitialized'] = () => {
+        openCvReady = true;
+        setStatus('OpenCV ready. You can capture a photo.');
+        // trigger auto-capture after small delay if autoCapture true
+        if (autoCapture) {
+          // give camera 500ms to settle
+          setTimeout(() => {
             captureFrame();
-        });
-        autoToggle.addEventListener('click', () => {
-            autoCapture = !autoCapture;
-            autoToggle.textContent = 'Auto Capture: ' + (autoCapture ? 'ON' : 'OFF');
-            if (autoCapture && openCvReady) {
-                setTimeout(captureFrame, 500);
-            }
-        });
-        (function conditionalAutoCapture() {
-            const created = localStorage.getItem('accountCreatedAt');
-            if (!created) return;
-            const then = new Date(created);
-            const now = new Date();
-            const diffMs = now - then;
-            if (diffMs <= 2 * 60 * 1000) {
-                autoCapture = true;
-                autoToggle.textContent = 'Auto Capture: ON';
-            } else {
-                autoCapture = false;
-                autoToggle.textContent = 'Auto Capture: OFF';
-            }
-        })();
-        startCamera();
-        window.addEventListener('beforeunload', () => {
-            if (stream) {
-                stream.getTracks().forEach(t => t.stop());
-            }
-        });
-    </script>
+          }, 700);
+        }
+      };
+    }
+
+    // capture frame, process with OpenCV and show preview
+    function captureFrame() {
+      if (!stream) {
+        setStatus('Camera not started yet.');
+        return;
+      }
+      // draw current video frame to a temporary canvas
+      const tmpCanvas = document.createElement('canvas');
+      tmpCanvas.width = video.videoWidth;
+      tmpCanvas.height = video.videoHeight;
+      const ctx = tmpCanvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, tmpCanvas.width, tmpCanvas.height);
+
+      // show raw capture to img first (optional)
+      capturedImg.src = tmpCanvas.toDataURL('image/png');
+      //setStatus('Captured — processing with OpenCV...');
+
+      // if OpenCV is ready, do a simple processing pipeline: grayscale + gaussian blur
+      if (openCvReady) {
+        try {
+          let src = cv.imread(tmpCanvas);        // read from canvas element
+          let dst = new cv.Mat();
+          cv.cvtColor(src, src, cv.COLOR_RGBA2GRAY);
+          // gaussian blur to make it look 'processed'
+          let ksize = new cv.Size(7, 7);
+          cv.GaussianBlur(src, dst, ksize, 0, 0, cv.BORDER_DEFAULT);
+
+          // put result on canvasOutput
+          //cv.imshow(canvasOutput, dst);
+
+          // also update capturedImg to show processed (convert canvasOutput to dataURL)
+          //capturedImg.src = canvasOutput.toDataURL('image/png');
+
+          // release mats
+          src.delete(); dst.delete();
+
+          setStatus('Processed and preview shown. You are famous now.');
+        } catch (err) {
+          console.error('OpenCV processing error:', err);
+          setStatus('Processed failed: ' + err);
+        }
+      } else {
+        setStatus('OpenCV not ready yet. Showing unprocessed capture.');
+      }
+    }
+
+    // download the shown image
+    downloadBtn.addEventListener('click', () => {
+      const link = document.createElement('a');
+      link.href = capturedImg.src;
+      const name = (localStorage.getItem('newUser') || 'user') + '_photo.png';
+      link.download = name;
+      link.click();
+    });
+
+    captureBtn.addEventListener('click', () => {
+      captureFrame();
+    });
+
+    autoToggle.addEventListener('click', () => {
+      autoCapture = !autoCapture;
+      autoToggle.textContent = 'Auto Capture: ' + (autoCapture ? 'ON' : 'OFF');
+      if (autoCapture && openCvReady) {
+        // small delay to ensure camera still ready
+        setTimeout(captureFrame, 500);
+      }
+    });
+
+    // start camera immediately
+    startCamera();
+
+    // optional: if you want to auto-capture only when the user just created account,
+    // you can check localStorage.getItem('accountCreatedAt') and only auto-capture if it's recent.
+    // Example (optional):
+    (function conditionalAutoCapture() {
+      const created = localStorage.getItem('accountCreatedAt');
+      if (!created) return;
+      const then = new Date(created);
+      const now = new Date();
+      const diffMs = now - then;
+      // if account was created within last 2 minutes, allow auto-capture:
+      if (diffMs <= 2 * 60 * 1000) {
+        autoCapture = true;
+        autoToggle.textContent = 'Auto Capture: ON';
+      } else {
+        autoCapture = false;
+        autoToggle.textContent = 'Auto Capture: OFF';
+      }
+    })();
+
+    // cleanup on unload
+    window.addEventListener('beforeunload', () => {
+      if (stream) {
+        stream.getTracks().forEach(t => t.stop());
+      }
+    });
+  </script>
 </body>
 </html>
