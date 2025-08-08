@@ -1,0 +1,51 @@
+/* General button styling */
+#controls {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+button {
+    padding: 12px 24px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    border: none;
+    border-radius: 50px; /* Makes the buttons oval-shaped */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+    color: white;
+    text-transform: uppercase;
+}
+
+/* Specific styling for the Capture button */
+#captureBtn {
+    background: linear-gradient(45deg, #FF6B6B, #FFD166);
+}
+
+#captureBtn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Specific styling for the Auto Capture button */
+#autoCaptureToggle {
+    background: linear-gradient(45deg, #06D6A0, #118AB2);
+}
+
+#autoCaptureToggle:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Specific styling for the Download button */
+#downloadBtn {
+    background: linear-gradient(45deg, #6A4C93, #6B8E23);
+}
+
+#downloadBtn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
