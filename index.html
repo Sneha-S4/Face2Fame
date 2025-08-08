@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Funny Password Creator</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="emoji-background">
+    <span>😂</span>
+    <span>🤪</span>
+    <span>🤯</span>
+    <span>🥳</span>
+    <span>🤖</span>
+    <span>👻</span>
+    <span>💩</span>
+    <span>🔥</span>
+    <span>💯</span>
+     <span>💯</span>
+  <span>✨</span>
+  <span>🎉</span>
+  <span>🚀</span>
+  <span>🎸</span>
+  <span>🦄</span>
+  <span>🍔</span>
+  </div>
+
+  <div class="content-wrapper">
+    <h1>Create Your Account</h1>
+    <input type="text" id="username" placeholder="Enter username"><br>
+    <input type="password" id="password" placeholder="Enter password"><br>
+    
+    <div id="progressBar"><div id="progressFill"></div></div>
+    
+    <div id="message">Enter your password 😎</div>
+    <button id="createBtn" disabled>Create Account</button>
+  </div>
+
+  <script>
+    const passwordField = document.getElementById("password");
+    const message = document.getElementById("message");
+    const createBtn = document.getElementById("createBtn");
+    const progressFill = document.getElementById("progressFill");
+
+    function romanToValue(str) {
+      const values = {I:1, V:5, X:10, L:50, C:100, D:500, M:1000};
+      let total = 0;
+      for (let i = 0; i < str.length; i++) {
+        let curr = values[str[i]] || 0;
+        let next = values[str[i+1]] || 0;
+        total += curr < next ? -curr : curr;
+      }
+      return total;
+    }
+
+    passwordField.addEventListener("input", () => {
+      const pass = passwordField.value;
+      let step = 0;
+      const totalSteps = 10;
+
+      if (pass.length === 0) {
+        message.textContent = "Enter your password 😎";
+        updateProgress(0, totalSteps);
+        createBtn.disabled = true;
+        return;
+      }
+      if (!(pass[0] >= 'A' && pass[0] <= 'Z') && /[a-z]/.test(pass)) {
+        message.textContent = "Needs a CAPITAL letter! Do I have to yell at you?! 😡";
+        updateProgress(step, totalSteps);
+        createBtn.disabled = true;
+        return;
+      }
+      step++;
+      if (!/\d/.test(pass)) {
+        message.textContent = "Add some numbers! Spice it up! 🔢";
+        updateProgress(step, totalSteps);
+        createBtn.disabled = true;
+        return;
+      }
+      step++;
+      if (!/\b[IVXLCDM]+\b/i.test(pass)) {
+        message.textContent = "Throw in some Roman numerals! (As a separate group) 🏛";
+        updateProgress(step, totalSteps);
+        createBtn.disabled = true;
+        return;
+      }
+      step++;
+      const romanMatch = pass.toUpperCase().match(/\b[IVXLCDM]+\b/g);
+      if (romanMatch) {
+        let total = 0;
+        romanMatch.forEach(r => total += romanToValue(r));
+        if (total !== 42) {
+          message.textContent = `Your Roman numerals add to ${total}. Make them add to 42! ✨`;
+          updateProgress(step, totalSteps);
+          createBtn.disabled = true;
+          return;
+        }
+      }
+      step++;
+      if (!/[@#$%&]/.test(pass)) {
+        message.textContent = "Needs at least one @, #, $, %, or & — punctuation drama time! 💥";
+        updateProgress(step, totalSteps);
+        createBtn.disabled = true;
+        return;
+      }
+      step++;
+      let hasPalindrome = false;
+      for (let len = 3; len <= 5; len++) {
+        for (let i = 0; i <= pass.length - len; i++) {
+          let sub = pass.substring(i, i+len);
+          if (sub === sub.split("").reverse().join("")) {
+            hasPalindrome = true;
+            break;
+          }
+        }
+        if (hasPalindrome) break;
+      }
+      if (!hasPalindrome) {
+        message.textContent = "Make part of your password a palindrome (like ‘madam’)! 🔄";
+        updateProgress(step, totalSteps);
+        createBtn.disabled = true;
+        return;
+      }
+      step++;
+      const animals = ["cat", "dog", "lion", "tiger", "bear", "monkey", "elephant"];
+      if (!animals.some(animal => pass.toLowerCase().includes(animal))) {
+        message.textContent = "Include the name of an animal. 🐒 I’m feeling wild!";
+        updateProgress(step, totalSteps);
+        createBtn.disabled = true;
+        return;
+      }
+      step++;
+      if (!/(qwe|asd|zxc|123|456|789)/.test(pass)) {
+        message.textContent = "Include a mini keyboard pattern like ‘qwe’ or ‘123’. 🎹";
+        updateProgress(step, totalSteps);
+        createBtn.disabled = true;
+        return;
+      }
+      step++;
+      const mathPattern = /(\d+)([+\-*\/])(\d+)=(\d+)/;
+      const match = pass.match(mathPattern);
+      if (!match || eval(match[1] + match[2] + match[3]) != match[4]) {
+        message.textContent = "Insert a correct math equation like 3+2=5 to prove you’re not a calculator. 🧮";
+        updateProgress(step, totalSteps);
+        createBtn.disabled = true;
+        return;
+      }
+      step++;
+      if (pass.length !== 30) {
+        message.textContent = "Make it exactly 30 characters long. Because I said so. 🫡";
+        updateProgress(step, totalSteps);
+        createBtn.disabled = true;
+        return;
+      }
+      step++;
+      message.textContent = "Perfect! You’re a password legend! 🎉";
+      updateProgress(step, totalSteps);
+      createBtn.disabled = false;
+    });
+    function updateProgress(current, total) {
+      const percent = (current / total) * 100;
+      progressFill.style.width = percent + "%";
+    }
+    createBtn.addEventListener("click", () => {
+      window.location.href = "hello.html";
+    });
+  </script>
+</body>
+</html>
+
+
